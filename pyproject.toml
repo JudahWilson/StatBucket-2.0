@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "nba-scraper"
 version = "0.1.0"
@@ -20,8 +24,7 @@ dev-setup = "scripts.dev_setup:main"                     # Complete development 
 list-scripts = "scripts.list_scripts:main"               # Show all custom scripts with descriptions
 
 # Documentation Scripts  
-docs-setup = "scripts.docs_setup:main"                   # Initialize Sphinx documentation structure
-docs-build = "scripts.docs_build:main"                   # Generate HTML documentation from docstrings
+docs-build = "scripts.docs_build:main"                   # Setup and build documentation (auto-detects what's needed)
 docs-clean = "scripts.docs_clean:main"                   # Remove documentation build artifacts
 
 [project.optional-dependencies]

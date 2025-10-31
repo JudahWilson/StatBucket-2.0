@@ -1,7 +1,7 @@
 """
 Dynamic Schema Management System
 
-Handles dynamic column addition, schema change detection, and automated migrations
+Handles dynamic column addition, schema change detection, and automated schema updates
 for the NBA scraping system. Provides feedback mechanism when schema changes occur.
 """
 

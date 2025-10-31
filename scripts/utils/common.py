@@ -26,12 +26,12 @@ def ensure_directory_exists(path):
 
 def print_success(message):
     """Print success message with emoji"""
-    print(f"✅ {message}")
+    print(f"[SUCCESS] {message}")
 
 def print_error(message):
     """Print error message with emoji"""
-    print(f"❌ {message}")
+    print(f"[ERROR] {message}")
 
 def print_info(message):
     """Print info message with emoji"""
-    print(f"💡 {message}")
+    print(f"[INFO] {message}")

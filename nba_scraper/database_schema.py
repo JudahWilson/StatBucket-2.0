@@ -17,7 +17,7 @@ Key Data Types Identified:
 
 Schema supports:
 - Dynamic column addition
-- Migration tracking
+- Schema change tracking
 - Relationships between datasets
 - Temporal data (seasons, dates)
 - Comprehensive stats coverage
@@ -379,26 +379,6 @@ class SchemaChange(Base):
     __table_args__ = (
         Index('idx_schema_change_table', 'table_name'),
         Index('idx_schema_change_status', 'migration_applied'),
-    )
-
-class DataMigration(Base):
-    """Track data migration history"""
-    __tablename__ = 'data_migrations'
-    
-    id = Column(Integer, primary_key=True)
-    migration_name = Column(String(200), nullable=False)
-    table_name = Column(String(100), nullable=False)
-    function_name = Column(String(200))  # Python function used for transformation
-    records_processed = Column(Integer, default=0)
-    records_updated = Column(Integer, default=0)
-    status = Column(String(20), default='pending')  # pending, running, completed, failed
-    started_at = Column(DateTime, default=func.now())
-    completed_at = Column(DateTime)
-    error_message = Column(Text)
-    
-    __table_args__ = (
-        Index('idx_migration_status', 'status'),
-        Index('idx_migration_table', 'table_name'),
     )
 
 # Dynamic table for storing intermediate/test data

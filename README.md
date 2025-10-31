@@ -10,13 +10,13 @@ This project uses [uv](https://docs.astral.sh/uv/) for dependency management.
 # Install dependencies
 uv sync
 
-# Run the CLI
-uv run python -m nba_scraper
+# Initialize development environment
+uv run dev-setup
 ```
 
 ## Commands
 
-- To see all tertiary commands, run:
+- To see all tertiary scripts, run:
 
 ```bash
 uv run list-scripts
@@ -27,17 +27,15 @@ uv run list-scripts
 - **Dynamic Schema**: Automatic column detection and database schema evolution
 - **Rate Limiting**: Respectful scraping with configurable rate limits
 - **Data Relationships**: Comprehensive database schema linking teams, players, games, seasons
-- **Migration System**: Apply Python functions to update existing data
 - **Modular Architecture**: Separate modules for different aspects of scraping
 
 ## Modules
 
 - `database_schema.py` - Database models and relationships
 - `scraping_framework.py` - HTML downloading and rate limiting
-- `dynamic_schema.py` - Schema evolution and migration tracking
+- `dynamic_schema.py` - Schema evolution and change tracking
 - `column_handlers.py` - Regex-based data processing
 - `data_pipeline.py` - Pipeline architecture with batch processing
-- `migration_system.py` - Migration management with rollback support
 - `nba_scrapers_fixed.py` - NBA-specific data extractors
 
 ## Usage
@@ -51,20 +49,4 @@ scraper = NBAScraper(downloader, session_maker)
 
 # Scrape season data
 data = scraper.scrape_season_data(2024)
-```
-
-## Development
-
-```bash
-# Add development dependencies
-uv add --dev pytest black ruff
-
-# Run tests
-uv run pytest
-
-# Format code
-uv run black nba_scraper/
-
-# Lint code
-uv run ruff check nba_scraper/
 ```

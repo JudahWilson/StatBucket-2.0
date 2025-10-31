@@ -9,6 +9,5 @@ API Reference
    nba_scraper.data_pipeline
    nba_scraper.database_schema
    nba_scraper.dynamic_schema
-   nba_scraper.migration_system
    nba_scraper.nba_scrapers_fixed
    nba_scraper.scraping_framework

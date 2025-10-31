@@ -8,6 +8,7 @@ orchestrating other scripts for dependency installation and documentation setup.
 import sys
 from pathlib import Path
 from .utils.common import run_command, print_success, print_error, print_info
+from .utils.database import initialize_database
 import argparse
 
 def main():
@@ -25,25 +26,24 @@ def main():
         print_error("Failed to install dependencies")
         sys.exit(1)
     
-    # Setup documentation using existing docs-setup script
-    print_info("Setting up documentation...")
-    docs_setup_result = run_command(["uv", "run", "docs-setup"], check=False)
-    if docs_setup_result.returncode == 0:
-        print_success("Documentation setup completed")
-        
-        # Build initial documentation using existing docs-build script
-        print_info("Building initial documentation...")
-        docs_build_result = run_command(["uv", "run", "docs-build"], check=False)
-        if docs_build_result.returncode == 0:
-            print_success("Initial documentation built successfully")
-        else:
-            print_info("Initial documentation build completed with warnings")
+    # Initialize database
+    print_info("Initializing database...")
+    if initialize_database(skip_if_exists=True):
+        print_success("Database initialized successfully")
     else:
-        print_error("Documentation setup failed")
-        print_info("You can set up docs later with 'uv run docs-setup'")
+        print_error("Database initialization failed")
+    
+    # Setup and build documentation using combined docs script
+    print_info("Setting up and building documentation...")
+    docs_result = run_command(["uv", "run", "docs"], check=False)
+    if docs_result.returncode == 0:
+        print_success("Documentation setup and build completed")
+    else:
+        print_error("Documentation setup/build failed")
+        print_info("You can set up docs later with 'uv run docs'")
     
     print_success("Development environment setup complete!")
-    print_info(run_command('uv run list-scripts'.split(),capture_output=True).stdout)
+    print_info("Run 'uv run list-scripts' to see all available commands")
 
 if __name__ == "__main__":
     main()

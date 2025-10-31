@@ -13,10 +13,9 @@ def main():
         print("\nAvailable modules:")
         print("  - database_schema.py: Database models and relationships")
         print("  - scraping_framework.py: HTML downloading and rate limiting")
-        print("  - dynamic_schema.py: Schema evolution and migration")
+        print("  - dynamic_schema.py: Schema evolution and change tracking")
         print("  - column_handlers.py: Data processing handlers")
         print("  - data_pipeline.py: Pipeline architecture")
-        print("  - migration_system.py: Migration management")
         print("  - nba_scrapers_fixed.py: NBA-specific scrapers")
         
         print("\nUsage:")
