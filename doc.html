@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Python Symbol Browser — Docstrings & Code Viewer</title>
+    <style>
+      :root {
+        --bg: #0f1724;
+        --panel: #0b1220;
+        --muted: #93a0b3;
+        --accent: #38bdf8;
+        --card: #071226;
+      }
+      body {
+        font-family: Inter, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        background: linear-gradient(180deg, #061024 0%, #071428 100%);
+        color: #e6eef6;
+      }
+      header {
+        padding: 18px 24px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        display: flex;
+        gap: 16px;
+        align-items: center;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0;
+      }
+      .container {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 16px;
+        padding: 18px;
+      }
+      .panel {
+        background: var(--panel);
+        border-radius: 10px;
+        padding: 14px;
+        box-shadow: 0 6px 20px rgba(2, 6, 23, 0.6);
+      }
+      .file-input {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      input[type="file"] {
+        color: var(--muted);
+      }
+      .symbols {
+        margin-top: 12px;
+        max-height: 72vh;
+        overflow: auto;
+      }
+      .symbol {
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        background: linear-gradient(
+          180deg,
+          rgba(255, 255, 255, 0.01),
+          transparent
+        );
+        cursor: pointer;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+      }
+      .symbol:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+      }
+      .sym-name {
+        font-weight: 600;
+      }
+      .sym-signature {
+        font-family: monospace;
+        font-size: 12px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .doc {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .main {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .search {
+        flex: 1;
+      }
+      input[type="text"],
+      select,
+      button {
+        padding: 8px;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: transparent;
+        color: inherit;
+      }
+      .code-view {
+        background: var(--card);
+        padding: 12px;
+        border-radius: 10px;
+        overflow: auto;
+        max-height: 76vh;
+        border: 1px solid rgba(255, 255, 255, 0.03);
+      }
+      pre {
+        white-space: pre-wrap;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono",
+          "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.45;
+      }
+      .meta {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .no-file {
+        padding: 30px;
+        text-align: center;
+        color: var(--muted);
+      }
+      footer {
+        padding: 12px 18px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .split {
+        display: flex;
+        gap: 12px;
+      }
+      .right-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .small {
+        font-size: 12px;
+        padding: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Python Symbol Browser — docstrings & code</h1>
+      <div style="flex: 1"></div>
+      <div class="meta">
+        Drop one or more <code>.py</code> files or use the file picker below.
+      </div>
+    </header>
+
+    <div class="container">
+      <aside class="panel">
+        <div class="file-input">
+          <input id="filePicker" type="file" accept=".py" multiple />
+          <button id="clearBtn" class="small">Clear</button>
+        </div>
+        <div
+          style="margin-top: 10px; display: flex; gap: 8px; align-items: center"
+        >
+          <input
+            id="search"
+            class="search"
+            type="text"
+            placeholder="Filter symbols (name / docstring)"
+          />
+          <select id="mode" title="Which symbols to show">
+            <option value="all">All top-level symbols</option>
+            <option value="classes">Classes</option>
+            <option value="functions">Functions</option>
+          </select>
+        </div>
+
+        <div class="symbols" id="symbolsList">
+          <div class="no-file">
+            No files loaded — pick one or drag & drop a .py file here.
+          </div>
+        </div>
+      </aside>
+
+      <main class="right-col">
+        <div class="panel main">
+          <div class="toolbar">
+            <div class="controls">
+              <select id="filesSelect"></select>
+              <button id="showFileBtn" class="small">Show full file</button>
+              <button id="downloadBtn" class="small">
+                Download current snippet
+              </button>
+            </div>
+            <div style="flex: 1"></div>
+            <div class="meta">
+              Click any symbol on the left to view its code and docstring.
+            </div>
+          </div>
+
+          <div class="code-view panel" id="codeView">
+            <div class="no-file">
+              Select a symbol to view its docstring and code here.
+            </div>
+          </div>
+        </div>
+
+        <footer class="panel">
+          Tip: This is a lightweight client-side viewer using a tolerant parser.
+          It catches top-level <code>def</code> and
+          <code>class</code> declarations and their leading decorators and
+          docstrings. For more advanced parsing use a server-side AST extractor
+          or run Python's <code>ast</code> module to produce JSON.
+        </footer>
+      </main>
+    </div>
+
+    <script>
+      // Lightweight parser to extract top-level defs/classes, decorators, docstrings, and code blocks.
+      // It's intentionally tolerant and works well for common Python source layouts. For 100% correctness use Python's ast module server-side.
+
+      function parsePythonSource(text, filename = "<string>") {
+        const lines = text.replace(/\r\n/g, "\n").split("\n");
+        const symbols = [];
+
+        function isTopLevelDecl(line) {
+          return (
+            /^\s*(def|class)\s+[A-Za-z0-9_]+\s*\(/.test(line) ||
+            /^\s*(class)\s+[A-Za-z0-9_]+\s*(:)/.test(line) ||
+            /^\s*def\s+[A-Za-z0-9_]+\s*\(/.test(line)
+          );
+        }
+
+        // find all candidate declaration line indices
+        const declIndices = [];
+        for (let i = 0; i < lines.length; i++) {
+          const l = lines[i];
+          // consider line as a top-level decl if it starts at column 0 (no indentation) and matches def/class
+          if (/^\s*$/.test(l)) continue;
+          const indent = l.match(/^\s*/)[0].length;
+          const decl = l.match(/^\s*(def|class)\s+([A-Za-z0-9_]+)/);
+          if (decl && indent === 0) {
+            declIndices.push(i);
+          }
+        }
+
+        // helper: get block from start index until next top-level decl (exclusive)
+        function blockFrom(startIdx, endIdx) {
+          return lines.slice(startIdx, endIdx).join("\n");
+        }
+
+        for (let d = 0; d < declIndices.length; d++) {
+          const start = declIndices[d];
+          const end =
+            d + 1 < declIndices.length ? declIndices[d + 1] : lines.length;
+
+          // include leading decorators above start (if any)
+          let lead = start;
+          while (lead - 1 >= 0 && /^\s*@/.test(lines[lead - 1])) lead--;
+          const block = blockFrom(lead, end);
+          const declLine = lines[start].trim();
+          const nameMatch = declLine.match(/^(def|class)\s+([A-Za-z0-9_]+)/);
+          const kind = nameMatch ? nameMatch[1] : "def";
+          const name = nameMatch ? nameMatch[2] : "symbol_" + start;
+          // extract signature or class header (the decl line possibly spanning multiple physical lines)
+          let signature = lines[start];
+          // join subsequent lines that are continuation of signature (ending with ':' absent)
+          let sigEnd = start;
+          if (!/[:]\s*$/.test(lines[sigEnd])) {
+            for (let j = start + 1; j < end; j++) {
+              signature += "\n" + lines[j];
+              sigEnd = j;
+              if (/[:]\s*$/.test(lines[j])) break;
+            }
+          }
+
+          // extract docstring: the first logical statement after signature that is a string literal
+          let docstring = null;
+          // find first non-empty line after sigEnd
+          let idx = sigEnd + 1;
+          while (idx < end && /^\s*$/.test(lines[idx])) idx++;
+          if (idx < end) {
+            const singleLineDQ = lines[idx].match(
+              /^\s*([ruRUfF]{0,2})?(?:\"\"\"|\'\'\')(.*)(?:\"\"\"|\'\'\')\s*$/
+            );
+            const startTriple = lines[idx].match(
+              /^\s*([ruRUfF]{0,2})?(?:\"\"\"|\'\'\')/
+            );
+            if (singleLineDQ) {
+              docstring = singleLineDQ[2].trim();
+            } else if (startTriple) {
+              // find end triple
+              const quote = lines[idx].trim().slice(0, 3);
+              let txt = lines[idx].split(quote)[1] || "";
+              let j = idx + 1;
+              let found = false;
+              for (; j < end; j++) {
+                if (lines[j].includes(quote)) {
+                  const parts = lines[j].split(quote);
+                  txt += "\n" + parts[0];
+                  found = true;
+                  break;
+                }
+                txt += "\n" + lines[j];
+              }
+              if (found) docstring = txt.trim();
+            }
+          }
+
+          symbols.push({
+            filename,
+            kind,
+            name,
+            signature: signature.trim(),
+            docstring: docstring || "",
+            code: block,
+          });
+        }
+
+        // if no top-level decls found, optionally treat entire file as one pseudo-symbol
+        if (symbols.length === 0) {
+          symbols.push({
+            filename,
+            kind: "file",
+            name: filename,
+            signature: "<entire file>",
+            docstring: "",
+            code: text,
+          });
+        }
+
+        return symbols;
+      }
+
+      // UI logic
+      const filesSelect = document.getElementById("filesSelect");
+      const filePicker = document.getElementById("filePicker");
+      const symbolsList = document.getElementById("symbolsList");
+      const codeView = document.getElementById("codeView");
+      const search = document.getElementById("search");
+      const mode = document.getElementById("mode");
+      const clearBtn = document.getElementById("clearBtn");
+      const showFileBtn = document.getElementById("showFileBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
+
+      let filesData = {}; // filename -> {text, symbols:[]}
+      let currentSymbol = null;
+
+      function renderFilesSelect() {
+        filesSelect.innerHTML = "";
+        const fnames = Object.keys(filesData);
+        if (fnames.length === 0) {
+          const opt = document.createElement("option");
+          opt.text = "— no files —";
+          filesSelect.add(opt);
+          return;
+        }
+        fnames.forEach((f, i) => {
+          const opt = document.createElement("option");
+          opt.value = f;
+          opt.text = f;
+          filesSelect.add(opt);
+        });
+      }
+
+      function renderSymbols() {
+        symbolsList.innerHTML = "";
+        const q = (search.value || "").toLowerCase();
+        let all = [];
+        Object.values(filesData).forEach(
+          (fd) => (all = all.concat(fd.symbols))
+        );
+        // filter by mode
+        const m = mode.value;
+        all = all.filter((s) => {
+          if (m === "all") return true;
+          if (m === "classes") return s.kind === "class";
+          if (m === "functions") return s.kind === "def";
+          return true;
+        });
+        if (q)
+          all = all.filter(
+            (s) =>
+              (s.name || "").toLowerCase().includes(q) ||
+              (s.docstring || "").toLowerCase().includes(q) ||
+              (s.signature || "").toLowerCase().includes(q)
+          );
+
+        if (all.length === 0) {
+          symbolsList.innerHTML =
+            '<div class="no-file">No symbols match your filter.</div>';
+          return;
+        }
+
+        all.forEach((sym) => {
+          const el = document.createElement("div");
+          el.className = "symbol";
+          el.dataset.filename = sym.filename;
+          el.dataset.name = sym.name;
+          const n = document.createElement("div");
+          n.className = "sym-name";
+          n.textContent = sym.name + " — " + sym.kind;
+          const s = document.createElement("div");
+          s.className = "sym-signature";
+          s.textContent = sym.signature;
+          const d = document.createElement("div");
+          d.className = "doc";
+          d.textContent = sym.docstring
+            ? sym.docstring.split("\n")[0]
+            : "(no docstring)";
+          el.appendChild(n);
+          el.appendChild(s);
+          el.appendChild(d);
+          el.addEventListener("click", () => {
+            showSymbol(sym);
+          });
+          symbolsList.appendChild(el);
+        });
+      }
+
+      function showSymbol(sym) {
+        currentSymbol = sym;
+        codeView.innerHTML = "";
+        const title = document.createElement("div");
+        title.className = "meta";
+        title.textContent = `${sym.name} — ${sym.kind} — ${sym.filename}`;
+        const doc = document.createElement("div");
+        doc.style.marginTop = "8px";
+        doc.innerHTML =
+          "<strong>Docstring</strong><br/>" +
+          (sym.docstring
+            ? '<pre style="white-space:pre-wrap">' +
+              escapeHtml(sym.docstring) +
+              "</pre>"
+            : '<div class="doc">(no docstring)</div>');
+        const codeBlock = document.createElement("pre");
+        codeBlock.innerHTML = "<code>" + escapeHtml(sym.code) + "</code>";
+        codeView.appendChild(title);
+        codeView.appendChild(doc);
+        codeView.appendChild(document.createElement("hr"));
+        codeView.appendChild(codeBlock);
+      }
+
+      function showFullFile(filename) {
+        const fd = filesData[filename];
+        if (!fd) return;
+        currentSymbol = {
+          filename,
+          name: filename,
+          kind: "file",
+          signature: "full file",
+          docstring: "",
+          code: fd.text,
+        };
+        showSymbol(currentSymbol);
+      }
+
+      function escapeHtml(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+
+      filePicker.addEventListener("change", async (e) => {
+        const fls = Array.from(e.target.files || []);
+        for (const f of fls) {
+          const text = await f.text();
+          const syms = parsePythonSource(text, f.name);
+          filesData[f.name] = { text, symbols: syms };
+        }
+        renderFilesSelect();
+        renderSymbols();
+      });
+
+      filesSelect.addEventListener("change", () => {
+        const f = filesSelect.value;
+        if (!f) return;
+        showFullFile(f);
+      });
+
+      search.addEventListener("input", () => {
+        renderSymbols();
+      });
+      mode.addEventListener("change", () => {
+        renderSymbols();
+      });
+      clearBtn.addEventListener("click", () => {
+        filesData = {};
+        filePicker.value = "";
+        renderFilesSelect();
+        renderSymbols();
+        codeView.innerHTML =
+          '<div class="no-file">Select a symbol to view its docstring and code here.</div>';
+      });
+      showFileBtn.addEventListener("click", () => {
+        const f = filesSelect.value;
+        if (f) showFullFile(f);
+      });
+
+      downloadBtn.addEventListener("click", () => {
+        if (!currentSymbol) return alert("No symbol selected");
+        const blob = new Blob([currentSymbol.code], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = (currentSymbol.name || "snippet") + ".py";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      // drag & drop
+      window.addEventListener("dragover", (e) => {
+        e.preventDefault();
+      });
+      window.addEventListener("drop", (e) => {
+        e.preventDefault();
+        const items = e.dataTransfer.files;
+        if (items && items.length > 0) {
+          filePicker.files = items;
+          filePicker.dispatchEvent(new Event("change"));
+        }
+      });
+    </script>
+  </body>
+</html>
