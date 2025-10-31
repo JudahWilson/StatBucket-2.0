@@ -1,6 +1,7 @@
 # Instructions
 
 - you are crazy. you do too much without asking me. please ask me for permission before writing code.
+- you do way more than i ask. if you have ambiguities on how to perfectly accomplish my goal, please ask me more information
 - all solutions should be proportional to the project at hand and not any more crazy.
 - Every command you run (besides posix bash commands) give me a summary of what they are doing.
 - Don't assume anything without asking me.

@@ -26,6 +26,8 @@ list-scripts = "scripts.list_scripts:main"               # Show all custom scrip
 # Documentation Scripts  
 docs-build = "scripts.docs_build:main"                   # Setup and build documentation (auto-detects what's needed)
 docs-clean = "scripts.docs_clean:main"                   # Remove documentation build artifacts
+docs-er-diagram = "scripts.docs_er_diagram:main"         # Generate SVG ER diagram
+docs-show = "scripts.docs_show:main"                     # Open documentation (--er for ER diagram)
 
 [project.optional-dependencies]
 docs = [
