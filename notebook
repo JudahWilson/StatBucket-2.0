@@ -1,0 +1,30 @@
+html storage should be dynamic and predictable based on url and tag ids / selectors 
+
+
+(custom df base class)
+BaseData
+    (property)
+    url
+
+    (property -- this a database table)
+    table_name
+        
+    
+    download
+        override cache
+        seasons range
+
+    (instances may have)
+    _parse_y(selector)
+    _parse_x(selector)
+    _parse_z(selector)
+
+    parse
+        (defaults to dataframe's self.read_html)
+        otherwise something like
+        _parse_x()
+        _parse_y()
+        _parse_z()
+
+    stage (save to a temporary table)
+    

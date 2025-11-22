@@ -1,5 +1,7 @@
 # Instructions
 
+- For every file you update, ask me for permission while describing what you are accomplishing and why briefly
+- other than for abstract classes, provide one or more examples for each method or function in sphinx RST at the end of the docstring
 - you are crazy. you do too much without asking me. please ask me for permission before writing code.
 - you do way more than i ask. if you have ambiguities on how to perfectly accomplish my goal, please ask me more information
 - all solutions should be proportional to the project at hand and not any more crazy.
@@ -17,6 +19,7 @@
   ```
 - Don't reinvent the wheel everytime you code. Understand the project and use existing code where appropriate.
 - no emojis
+- Communicate Efficiently and straitforward. No extra words that emulate emotional response. Just strait facts and info like a robot.
 
 # Overall requirements
 

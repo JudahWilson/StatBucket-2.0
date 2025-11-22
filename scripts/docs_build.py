@@ -1,15 +1,96 @@
 """
-Documentation script
+Documentation build script
 
-Intelligent documentation management that sets up Sphinx structure if needed,
-then builds HTML documentation from Python docstrings.
+Streamlined documentation workflow that automatically:
+1. Cleans all build artifacts and cache
+2. Sets up Sphinx structure if needed (or when forced with --force-setup)
+3. Builds HTML documentation from Python docstrings
+
+Provides a single command for complete documentation generation.
 """
 
 import sys
+import shutil
+import os
+import stat
 from pathlib import Path
 from .utils.sphinx_helpers import setup_sphinx_structure, generate_api_docs
 from .utils.common import run_command, print_success, print_error, print_info
 import argparse
+
+def remove_readonly(func, path, _):
+    """
+    Error handler for Windows readonly file removal.
+    
+    This function is called when shutil.rmtree encounters permission errors,
+    typically due to readonly or hidden file attributes on Windows.
+    """
+    try:
+        # Clear readonly and hidden attributes
+        os.chmod(path, stat.S_IWRITE)
+        func(path)
+    except Exception as e:
+        print_error(f"Failed to remove {path}: {e}")
+
+def safe_rmtree(path):
+    """
+    Safely remove a directory tree, handling Windows permission issues.
+    
+    Args:
+        path (Path): The directory path to remove
+        
+    Returns:
+        bool: True if successful, False if failed
+    """
+    try:
+        if os.name == 'nt':  # Windows
+            shutil.rmtree(path, onerror=remove_readonly)
+        else:  # Unix-like systems
+            shutil.rmtree(path)
+        return True
+    except Exception as e:
+        print_error(f"Failed to remove directory {path}: {e}")
+        return False
+
+def clean_documentation() -> bool:
+    """
+    Remove all documentation build artifacts and cache files.
+    
+    Returns:
+        bool: True if successful, False if any files could not be removed
+        
+    Examples:
+        >>> clean_documentation()  # Clean all build artifacts
+        True
+    """
+    print_info("Cleaning documentation build artifacts...")
+    
+    docs_dir = Path("docs")
+    build_dir = docs_dir / "_build"
+    success = True
+    
+    if build_dir.exists():
+        if safe_rmtree(build_dir):
+            print_success("Cleaned documentation build directory")
+        else:
+            success = False
+    else:
+        print_info("No build directory found to clean")
+    
+    # Clean any Sphinx cache
+    doctree_dir = docs_dir / ".doctrees"
+    if doctree_dir.exists():
+        if safe_rmtree(doctree_dir):
+            print_success("Cleaned Sphinx cache")
+        else:
+            success = False
+    
+    if success:
+        print_success("Documentation cleanup complete!")
+    else:
+        print_error("Some files could not be removed. You may need to run as administrator.")
+    
+    return success
 
 def needs_setup() -> bool:
     """Check if documentation setup is needed"""
@@ -69,26 +150,34 @@ def build_documentation() -> bool:
         return False
 
 def main():
-    """Generate documentation with automatic setup if needed"""
+    """Generate documentation with automatic clean, setup detection, and build"""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--setup-only', action='store_true',
-                       help='Only set up documentation structure, do not build')
-    parser.add_argument('--build-only', action='store_true', 
-                       help='Only build documentation, do not set up')
+    parser.add_argument('--force-setup', action='store_true',
+                       help='Force setup to run even if documentation structure already exists')
     
     args = parser.parse_args()
     
     success = True
     
-    # Setup if needed (unless build-only specified)
-    if not args.build_only and needs_setup():
-        success = setup_documentation()
-    
-    # Build unless setup-only specified
-    if not args.setup_only and success:
-        success = build_documentation()
+    # Always clean before building
+    success = clean_documentation()
     
     if not success:
+        print_error("Failed to clean documentation artifacts")
+        sys.exit(1)
+    
+    # Setup if needed or forced
+    if args.force_setup or needs_setup():
+        success = setup_documentation()
+        if not success:
+            print_error("Failed to setup documentation structure")
+            sys.exit(1)
+    
+    # Always build after cleaning (and setup if needed)
+    success = build_documentation()
+    
+    if not success:
+        print_error("Failed to build documentation")
         sys.exit(1)
 
 if __name__ == "__main__":

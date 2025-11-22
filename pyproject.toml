@@ -10,9 +10,8 @@ requires-python = ">=3.9"
 
 dependencies = [
     "requests>=2.28.0",
-    "beautifulsoup4>=4.11.0", 
+    "beautifulsoup4>=4.11.0",
     "lxml>=4.9.0",
-    "sqlalchemy>=1.4.0",
     "psycopg2-binary>=2.9.0",
     "pandas>=1.5.0",
     "python-dateutil>=2.8.0",
@@ -24,8 +23,7 @@ dev-setup = "scripts.dev_setup:main"                     # Complete development 
 list-scripts = "scripts.list_scripts:main"               # Show all custom scripts with descriptions
 
 # Documentation Scripts  
-docs-build = "scripts.docs_build:main"                   # Setup and build documentation (auto-detects what's needed)
-docs-clean = "scripts.docs_clean:main"                   # Remove documentation build artifacts
+docs-build = "scripts.docs_build:main"                   # Clean, setup (if needed), and build documentation (--force-setup to regenerate structure)
 docs-er-diagram = "scripts.docs_er_diagram:main"         # Generate SVG ER diagram
 docs-show = "scripts.docs_show:main"                     # Open documentation (--er for ER diagram)
 
