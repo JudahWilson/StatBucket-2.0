@@ -9,6 +9,7 @@ This system provides comprehensive tools for scraping NBA data from basketball-r
    :maxdepth: 2
    :caption: Contents:
 
+   example_doctests
    modules
 
 Indices and tables

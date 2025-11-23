@@ -8,6 +8,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
     'sphinx.ext.napoleon',
+    'sphinx.ext.doctest',  # Enables doctest integration
     'sphinx_autodoc_typehints',
 ]
 
@@ -33,6 +34,13 @@ modindex_common_prefix = ['nba_scraper.']
 # Autodoc configuration for cleaner output
 autodoc_typehints = 'description'
 autodoc_typehints_description_target = 'documented'
+
+# Doctest configuration
+doctest_default_flags = (
+    'ELLIPSIS |'
+    'NORMALIZE_WHITESPACE |'
+    'IGNORE_EXCEPTION_DETAIL'
+)
 
 # Custom processing to clean up all nba_scraper references
 def process_signature(app, what, name, obj, options, signature, return_annotation):
