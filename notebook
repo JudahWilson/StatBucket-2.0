@@ -9,6 +9,8 @@ BaseData
     (property -- this a database table)
     table_name
         
+    (property)
+    _ staged_rows
     
     download
         override cache

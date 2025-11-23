@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "nba-scraper"
+name = "statbucket"
 version = "0.1.0"
 description = "NBA data scraping system for basketball-reference.com"
 requires-python = ">=3.9"
@@ -15,6 +15,9 @@ dependencies = [
     "psycopg2-binary>=2.9.0",
     "pandas>=1.5.0",
     "python-dateutil>=2.8.0",
+    "python-dotenv>=1.2.1",
+    "sqlalchemy>=2.0.44",
+    "mysql-connector-python>=9.4.0",
 ]
 
 [project.scripts]
@@ -24,8 +27,10 @@ list-scripts = "scripts.list_scripts:main"               # Show all custom scrip
 
 # Documentation Scripts  
 docs-build = "scripts.docs_build:main"                   # Clean, setup (if needed), and build documentation (--force-setup to regenerate structure)
-docs-er-diagram = "scripts.docs_er_diagram:main"         # Generate SVG ER diagram
 docs-show = "scripts.docs_show:main"                     # Open documentation (--er for ER diagram)
+
+# Other scripts
+metabase = "scripts.metabase:main"                       # Start Metabase server for data visualization
 
 [project.optional-dependencies]
 docs = [
@@ -33,6 +38,9 @@ docs = [
     "sphinx-autodoc-typehints>=1.25.0", 
     "sphinx-rtd-theme>=1.3.0",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["statbucket", "scripts"]
 
 [tool.uv]
 dev-dependencies = [
