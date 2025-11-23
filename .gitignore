@@ -9,8 +9,10 @@ __pycache__/
 # Virtual environment
 .venv/
 
-# Documentation builds
+# Sphinx
 docs/_build/
+*.rst
+!build/index.rst
 
 # IDE
 .vscode/

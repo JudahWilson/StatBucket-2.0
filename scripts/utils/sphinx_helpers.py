@@ -1,8 +1,8 @@
 """Sphinx documentation utilities"""
 
-import sys
+import fnmatch
 from pathlib import Path
-from .common import run_command, ensure_directory_exists, print_success, print_error
+from .common import ensure_directory_exists, print_success, print_error, print_info
 
 def create_sphinx_config():
     """Create Sphinx configuration with autodoc settings"""
@@ -108,36 +108,161 @@ Indices and tables
     
     return docs_dir
 
-def generate_api_docs():
-    """Generate API documentation from source code with flat structure"""
+def parse_gitignore():
+    """Parse .gitignore file and return patterns to exclude"""
+    gitignore_path = Path(".gitignore")
+    patterns = []
+    
+    if gitignore_path.exists():
+        with open(gitignore_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#'):
+                    patterns.append(line)
+    
+    # Add common Python patterns if not already present
+    default_patterns = ['__pycache__/', '*.pyc', '*.pyo', '.venv/', '*.egg-info/']
+    for pattern in default_patterns:
+        if pattern not in patterns:
+            patterns.append(pattern)
+    
+    return patterns
+
+def is_ignored(path, ignore_patterns):
+    """Check if a path matches any gitignore patterns"""
+    path_str = str(path).replace('\\', '/')
+    
+    for pattern in ignore_patterns:
+        # Handle directory patterns
+        if pattern.endswith('/'):
+            if fnmatch.fnmatch(path_str + '/', pattern) or fnmatch.fnmatch(path_str, pattern[:-1]):
+                return True
+        # Handle file patterns
+        elif fnmatch.fnmatch(path_str, pattern) or fnmatch.fnmatch(Path(path_str).name, pattern):
+            return True
+        # Handle patterns that might match parent directories
+        elif '/' in pattern and fnmatch.fnmatch(path_str, pattern):
+            return True
+    
+    return False
+
+def discover_python_packages():
+    """Discover Python packages respecting .gitignore, focusing on statbucket/"""
+    ignore_patterns = parse_gitignore()
+    packages = []
+    
+    # Focus on statbucket directory as per requirements
+    statbucket_dir = Path("statbucket")
+    if statbucket_dir.exists() and not is_ignored(statbucket_dir, ignore_patterns):
+        packages.append("statbucket")
+        print_info(f"Found package: statbucket")
+        
+        # Find subpackages
+        for item in statbucket_dir.rglob("__init__.py"):
+            package_dir = item.parent
+            if not is_ignored(package_dir, ignore_patterns):
+                # Convert path to module name
+                module_name = str(package_dir).replace('\\', '.').replace('/', '.')
+                if module_name not in packages:
+                    packages.append(module_name)
+                    print_info(f"Found subpackage: {module_name}")
+    
+    return packages
+
+def generate_custom_rst_files():
+    """Generate custom RST files for statbucket modules with correct paths"""
     docs_dir = Path("docs")
     
-    # Generate module documentation with better options
-    cmd = [
-        sys.executable, "-m", "sphinx.ext.apidoc",
-        "-f",           # Force overwrite
-        "-e",           # Put each module on separate page  
-        "--no-toc",     # Don't create a main toc file
-        "-o", str(docs_dir), 
-        "nba_scraper"
+    # Manually create RST files for the statbucket package structure
+    rst_files = [
+        {
+            'filename': 'statbucket.rst',
+            'title': 'statbucket package',
+            'module': 'statbucket',
+            'submodules': ['statbucket.database', 'statbucket.scraping']
+        },
+        {
+            'filename': 'statbucket.database.rst', 
+            'title': 'statbucket.database module',
+            'module': 'statbucket.database'
+        },
+        {
+            'filename': 'statbucket.scraping.rst',
+            'title': 'statbucket.scraping package', 
+            'module': 'statbucket.scraping',
+            'submodules': ['statbucket.scraping.base', 'statbucket.scraping.utils']
+        },
+        {
+            'filename': 'statbucket.scraping.base.rst',
+            'title': 'statbucket.scraping.base module',
+            'module': 'statbucket.scraping.base'
+        },
+        {
+            'filename': 'statbucket.scraping.utils.rst', 
+            'title': 'statbucket.scraping.utils module',
+            'module': 'statbucket.scraping.utils'
+        }
     ]
     
-    result = run_command(cmd, check=False)
+    for rst_config in rst_files:
+        create_rst_file(docs_dir, rst_config)
+        print_info(f"Generated RST for {rst_config['module']}")
     
-    # Create a custom modules index that lists modules directly
-    if result.returncode == 0:
-        create_flat_modules_index(docs_dir)
-    
-    return result.returncode == 0
+    return True
 
-def create_flat_modules_index(docs_dir):
-    """Create a flat modules index without nesting and clean module titles"""
+def create_rst_file(docs_dir, config):
+    """Create individual RST file with proper configuration"""
+    rst_path = docs_dir / config['filename']
     
-    # Find all generated .rst files for modules (excluding main nba_scraper.rst)
+    content = f"{config['title']}\n"
+    content += "=" * len(config['title']) + "\n\n"
+    
+    # Add main module documentation
+    content += f".. automodule:: {config['module']}\n"
+    content += "   :members:\n"
+    content += "   :undoc-members:\n" 
+    content += "   :show-inheritance:\n\n"
+    
+    # Add submodules toctree if they exist
+    if 'submodules' in config and config['submodules']:
+        content += "Submodules\n"
+        content += "----------\n\n"
+        content += ".. toctree::\n"
+        content += "   :maxdepth: 1\n\n"
+        
+        for submodule in config['submodules']:
+            content += f"   {submodule}\n"
+    
+    with open(rst_path, 'w') as f:
+        f.write(content)
+
+def generate_api_docs():
+    """Generate API documentation from discovered packages"""
+    docs_dir = Path("docs")
+    packages = discover_python_packages()
+    
+    if not packages:
+        print_error("No Python packages found to document")
+        return False
+    
+    print_info("Generating custom RST files with correct module paths...")
+    success = generate_custom_rst_files()
+    
+    # Create a custom modules index that lists all discovered modules
+    if success:
+        create_dynamic_modules_index(docs_dir, packages)
+    
+    return success
+
+def create_dynamic_modules_index(docs_dir, packages):
+    """Create a dynamic modules index based on discovered packages"""
+    
     module_files = []
-    for rst_file in docs_dir.glob("nba_scraper.*.rst"):
-        if rst_file.name != "nba_scraper.rst":
-            module_name = rst_file.stem.replace("nba_scraper.", "")
+    
+    # Find all .rst files in docs directory that aren't index or conf
+    for rst_file in docs_dir.glob("*.rst"):
+        if rst_file.name not in ["index.rst", "modules.rst"]:
+            module_name = rst_file.stem
             module_files.append((module_name, rst_file.stem))
             
             # Update each module file to have a cleaner title
@@ -147,8 +272,8 @@ def create_flat_modules_index(docs_dir):
     module_files.sort()
     
     # Create modules.rst with direct module references
-    modules_content = '''API Reference
-=============
+    modules_content = '''StatBucket API Reference
+=======================
 
 .. toctree::
    :maxdepth: 2
@@ -162,6 +287,8 @@ def create_flat_modules_index(docs_dir):
     modules_path = docs_dir / "modules.rst"
     with open(modules_path, 'w') as f:
         f.write(modules_content)
+    
+    print_success(f"Created modules index with {len(module_files)} modules")
 
 def update_module_file_title(rst_file, clean_name):
     """Update individual module RST file to have cleaner title and content"""

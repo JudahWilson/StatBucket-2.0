@@ -18,3 +18,7 @@ uv run dev-setup```
 ```bash
 uv run list-scripts
 ````
+
+## References
+
+(doctest)[https://docs.python.org/3/library/doctest.html]

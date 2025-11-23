@@ -58,7 +58,7 @@ class BaseScraper(ABC):
             conn.execute(f"DELETE FROM {self._table_name}{(' WHERE ' + filter) if filter else ''}")
             conn.commit()
     
-    def df(self, sql_filter: str | None = None, force_refresh: bool = False):
+    def df(self, sql_filter: str | None = None, force_refresh: bool = False) -> pd.DataFrame:
         """Get a DataFrame of the data this class has scraped
 
         Args:

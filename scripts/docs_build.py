@@ -149,11 +149,41 @@ def build_documentation() -> bool:
         print_error(f"Documentation build failed: {e}")
         return False
 
+def validate_doctests() -> bool:
+    """Run doctest validation on the documentation"""
+    try:
+        print_info("Validating doctests in documentation...")
+        
+        docs_dir = Path("docs")
+        doctest_dir = docs_dir / "_build" / "doctest"
+        
+        cmd = [
+            sys.executable, "-m", "sphinx.cmd.build",
+            "-b", "doctest",
+            str(docs_dir),
+            str(doctest_dir)
+        ]
+        
+        result = run_command(cmd, check=True, capture_output=True)
+        print_success("All doctests passed!")
+        
+        if result.stdout:
+            print_info("Doctest details:")
+            print(result.stdout)
+        
+        return True
+        
+    except Exception as e:
+        print_error(f"Doctest validation failed: {e}")
+        return False
+
 def main():
     """Generate documentation with automatic clean, setup detection, and build"""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--force-setup', action='store_true',
                        help='Force setup to run even if documentation structure already exists')
+    parser.add_argument('--ignore-tests', action='store_true',
+                       help='Skip doctest validation during build process')
     
     args = parser.parse_args()
     
@@ -179,6 +209,13 @@ def main():
     if not success:
         print_error("Failed to build documentation")
         sys.exit(1)
+    
+    # Run doctest validation unless ignored
+    if not args.ignore_tests:
+        success = validate_doctests()
+        if not success:
+            print_error("Doctest validation failed")
+            sys.exit(1)
 
 if __name__ == "__main__":
     main()
