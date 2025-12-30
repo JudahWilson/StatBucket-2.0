@@ -2,3 +2,4 @@ TODO
     BaseScraper
         pub stats method--show range of rows and counts
     ?organize a "public" file? of all things that should be accessible from outside. tables, db engine?
+    how to propogate column changes to the staged and prod db

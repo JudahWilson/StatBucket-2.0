@@ -1,5 +1,5 @@
 from typing import Any
-from statbucket.scraping.base import BaseScraper
+from statbucket.scraping.base import BaseScraper, get_soup
 
 
 class Players(BaseScraper):
@@ -17,3 +17,12 @@ class Players(BaseScraper):
             override_html_cache=override_html_cache,
         )
 
+    def _get_html(self):
+        pass
+    
+    def _extract_data_from_html(self, sid: str | None = None):
+        pass
+
+    def _persist(self):
+        pass
+    
