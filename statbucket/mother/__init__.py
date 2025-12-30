@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-engine = create_engine(os.environ["DB_URL"])
+engine = create_engine(os.environ["PROD_DB_URL"])
 """Production database"""
-engine_staged = create_engine(os.environ["STAGED_DB_URL"])
+engine_staged = create_engine(os.environ["STAGING_DB_URL"])
 """Intermediate storage for review"""
 
 

@@ -29,6 +29,9 @@ list-scripts = "scripts.list_scripts:main"               # Show all custom scrip
 docs-build = "scripts.docs_build:main"                   # Clean, setup (if needed), and build documentation (--force-setup to regenerate structure)
 docs-show = "scripts.docs_show:main"                     # Open documentation (--er for ER diagram)
 
+# Database Scripts
+db-init-staged = "scripts.db_init_staged:main"           # Initialize staged database with production DDL
+
 # Other scripts
 metabase = "scripts.metabase:main"                       # Start Metabase server for data visualization
 
