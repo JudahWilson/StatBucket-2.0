@@ -1,3 +1,4 @@
+# TODO check if auto commit happened after 11:54:29
 from sqlalchemy import create_engine, MetaData, Table, select, insert
 import os
 from dotenv import load_dotenv
