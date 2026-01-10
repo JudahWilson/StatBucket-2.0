@@ -16,6 +16,8 @@ class Players(BaseScraper):
             range_end=range_end,
             override_html_cache=override_html_cache,
         )
+        self.letters = [chr(i) for i in range(ord("a"), ord("z") + 1)]
+        self.letters.pop(self.letters.index("x"))  # No players with last names starting with X
 
     def _get_html(self):
         pass

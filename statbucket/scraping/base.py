@@ -10,39 +10,40 @@ import pandas as pd
 from statbucket.mother import engine, engine_staged
 from sqlalchemy import text
 
-
+BASE_URL = "https://www.baseball-reference.com/"
+"""The base URL for Baseball Reference."""
 WEBSCRAPE_DEBOUNCER = 4
 """Time in seconds to wait between web requests to avoid error 429 (Too Many Requests)."""
 
-def html_cache_path(url: str):
+def html_cache_path(slug: str):
     """Get the path of the cached HTML file for a given URL.
 
     Args:
-        url (str): URL of the HTML content's source.
-
-    Raises:
-        NotImplementedError: Needs to be implemented.
+        slug (str): The path of the website the HTML content is from.
     """
-    raise NotImplementedError
+    cache_dir = "html_cache"
+    if not os.path.exists(cache_dir):
+        os.makedirs(cache_dir)
+    return os.path.join(cache_dir, slug) + ".html"
 
 
-def is_html_cached(url: str) -> bool:
+def is_html_cached(slug: str) -> bool:
     """Check if the HTML content for the given URL is already cached.
 
     Args:
-        url (str): URL of the HTML content's source.
+        slug (str): The path of the website the HTML content is from.
     """
-    if os.path.exists(html_cache_path(url)):
+    if os.path.exists(html_cache_path(slug)):
         return True
     return False
 
 
-def get_soup(url, selector: str | None = None) -> BeautifulSoup:
+def get_soup(slug, selector: str | None = None) -> BeautifulSoup:
     """
-    Get a BeautifulSoup object from a url
+    Get a BeautifulSoup object from a slug
 
     Args:
-        url (str): the url to get the soup from
+        slug (str): the path of the website to get the soup from
 
     Raises:
         Exception: A failure to get the data from the url
@@ -50,12 +51,12 @@ def get_soup(url, selector: str | None = None) -> BeautifulSoup:
     Returns:
         BeautifulSoup: the soup object
     """
-    print(url)
-    response = requests.get(url)
+    print(slug)
+    response = requests.get(slug)
     time.sleep(WEBSCRAPE_DEBOUNCER)
     if response.status_code < 200 or response.status_code > 299:
         raise Exception(
-            f"Error getting data from {url}. Status " + str(response.status_code)
+            f"Error getting data from {slug}. Status " + str(response.status_code)
         )
 
     if selector:
@@ -93,7 +94,8 @@ class BaseScraper(pd.DataFrame, ABC):
         Args:
             table_name (str): The database table name where it is being saved
             sid_column (str): The column name that uniquely identifies a row
-            range_start (Any, optional): The starting point of the range of
+            range_start (Any, optifile_path = Path("some/nested/directory/file.txt")
+file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of the range of
                 pages to be scraped. Defaults to None.
             range_end (Any, optional): The ending point of the range of pages
                 to be scraped. Defaults to None.
