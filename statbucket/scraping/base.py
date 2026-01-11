@@ -9,7 +9,10 @@ from abc import ABC, abstractmethod
 import pandas as pd
 from statbucket.mother import engine, engine_staged
 from sqlalchemy import text
+import warnings
 
+# Ignores any UserWarning that starts with this text
+warnings.filterwarnings("ignore", message="Pandas doesn't allow columns to be created via a new attribute name")
 
 class BaseScraperInternals(pd.DataFrame):
     """A base for the internal functionality of all scrapers."""
@@ -82,6 +85,7 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
         soup = None
         if not self._is_html_cached(slug) or self._override_html_cache:
             # Get soup from web and cache it
+            print()
             response = requests.get(self.BASE_URL + slug)
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
             if response.status_code < 200 or response.status_code > 299:
@@ -149,7 +153,7 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
                         else ""
                     )
                 )
-            ).fetchone()
+            ).mappings().fetchone()
             return (
                 result["latest_sid"]
                 if result and result["latest_sid"] is not None
