@@ -10,62 +10,8 @@ import pandas as pd
 from statbucket.mother import engine, engine_staged
 from sqlalchemy import text
 
-BASE_URL = "https://www.baseball-reference.com/"
-"""The base URL for Baseball Reference."""
-WEBSCRAPE_DEBOUNCER = 4
-"""Time in seconds to wait between web requests to avoid error 429 (Too Many Requests)."""
 
-def html_cache_path(slug: str):
-    """Get the path of the cached HTML file for a given URL.
-
-    Args:
-        slug (str): The path of the website the HTML content is from.
-    """
-    cache_dir = "html_cache"
-    if not os.path.exists(cache_dir):
-        os.makedirs(cache_dir)
-    return os.path.join(cache_dir, slug) + ".html"
-
-
-def is_html_cached(slug: str) -> bool:
-    """Check if the HTML content for the given URL is already cached.
-
-    Args:
-        slug (str): The path of the website the HTML content is from.
-    """
-    if os.path.exists(html_cache_path(slug)):
-        return True
-    return False
-
-
-def get_soup(slug, selector: str | None = None) -> BeautifulSoup:
-    """
-    Get a BeautifulSoup object from a slug
-
-    Args:
-        slug (str): the path of the website to get the soup from
-
-    Raises:
-        Exception: A failure to get the data from the url
-
-    Returns:
-        BeautifulSoup: the soup object
-    """
-    print(slug)
-    response = requests.get(slug)
-    time.sleep(WEBSCRAPE_DEBOUNCER)
-    if response.status_code < 200 or response.status_code > 299:
-        raise Exception(
-            f"Error getting data from {slug}. Status " + str(response.status_code)
-        )
-
-    if selector:
-        return BeautifulSoup(response.text, "html.parser").select_one(selector)
-    else:
-        return BeautifulSoup(response.text, "html.parser")
-
-
-class BaseScraper(pd.DataFrame, ABC):
+class BaseScraperInternals:
     """A base class for all data being scraped that inherits from DataFrame.
 
     the @abstractmethod decorated functions are the user-implemented functions
@@ -80,6 +26,10 @@ class BaseScraper(pd.DataFrame, ABC):
     Args:
         ABC (_type_): _description_
     """
+    BASE_URL = "https://www.baseball-reference.com/"
+    """The base URL for Baseball Reference."""
+    WEBSCRAPE_DEBOUNCER = 4
+    """Time in seconds to wait between web requests to avoid error 429 (Too Many Requests)."""
 
     def __init__(
         self,
@@ -111,6 +61,194 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
         self._range_start = range_start
         self._range_end = range_end
         self._override_html_cache = override_html_cache
+    
+    @classmethod
+    def _html_cache_path(cls, slug: str):
+        """Get the path of the cached HTML file for a given URL.
+
+        Args:
+            slug (str): The path of the website the HTML content is from.
+        """
+        cache_dir = "html_cache"
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+        return os.path.join(cache_dir, slug) + ".html"
+
+
+    @classmethod
+    def _is_html_cached(cls, slug: str) -> bool:
+        """Check if the HTML content for the given URL is already cached.
+
+        Args:
+            slug (str): The path of the website the HTML content is from.
+        """
+        if os.path.exists(cls._html_cache_path(slug)):
+            return True
+        return False
+
+
+    @classmethod
+    def _get_soup(cls, slug, selector: str | None = None) -> BeautifulSoup:
+        """
+        Get a BeautifulSoup object from a slug
+
+        Args:
+            slug (str): the path of the website to get the soup from
+
+        Raises:
+            Exception: A failure to get the data from the url
+
+        Returns:
+            BeautifulSoup: the soup object
+        """
+        print(slug)
+        response = requests.get(slug)
+        time.sleep(cls.WEBSCRAPE_DEBOUNCER)
+        if response.status_code < 200 or response.status_code > 299:
+            raise Exception(
+                f"Error getting data from {slug}. Status " + str(response.status_code)
+            )
+
+        if selector:
+            return BeautifulSoup(response.text, "html.parser").select_one(selector)
+        else:
+            return BeautifulSoup(response.text, "html.parser")
+    
+    def _save_html(self, url: str, selector: str | None = None):
+        """Use this function to save any HTML in self._get_html
+
+        Args:
+            url (str): URL slug of content
+            selector (str | None): The HTML selector
+        """
+        if not self._is_html_cached(url) or self._override_html_cache:
+            html_content = self._get_soup(url)
+            if selector:
+                html_content = str(html_content.select_one(selector))
+            else:
+                html_content = str(html_content)
+            with open(self._html_cache_path(url), "+a") as f:
+                f.write(html_content)
+
+    def _stage_rows(self, data: dict | pd.DataFrame | list[dict]):
+        """Save rows of data into the staging database.
+
+        Args:
+            data (dict | pd.DataFrame): The data of the row being staged
+        """
+        # Convert to DataFrame if dict
+        if isinstance(data, dict):
+            data = pd.DataFrame([data])
+        elif isinstance(data, list):
+            data = pd.DataFrame(data)
+
+        # Remove existing rows of the staged SIDs
+        sid_values = data[self._sid_column].tolist()
+        self.__delete_rows(SIDs=sid_values, engine=engine_staged)
+
+        # Save new row
+        data.to_sql(self._table_name, engine_staged, if_exists="append", index=False)
+
+
+    def _get_latest_sid(self, staged: bool = True) -> Any | None:
+        """Get the latest SID from either the staging or production database.
+        The result must be in the range defined by range_start and range_end.
+
+        Args:
+            staged (bool, optional): Whether to get from the staging database.
+                Defaults to True.
+        """
+        range_filter = ""
+        if self._range_start and self._range_end:
+            range_filter = f"BETWEEN '{self._range_start}' AND '{self._range_end}'"
+        elif self._range_start:
+            range_filter = f">= '{self._range_start}'"
+        elif self._range_end:
+            range_filter = f"<= '{self._range_end}'"
+
+        engine_to_use = engine_staged if staged else engine
+        with engine_to_use.connect() as conn:
+            result = conn.execute(
+                text(
+                    f"SELECT MAX({self._sid_column}) as latest_sid FROM {self._table_name}"
+                    + (
+                        f" WHERE {self._sid_column} {range_filter}"
+                        if range_filter
+                        else ""
+                    )
+                )
+            ).fetchone()
+            return (
+                result["latest_sid"]
+                if result and result["latest_sid"] is not None
+                else None
+            )
+
+    def __delete_rows(self, SIDs: list[str], engine):
+        """Delete multiple rows from the staging database.
+
+        Args:
+            SIDs (list[str]): The SIDs of the rows being deleted
+            engine: The database engine to use for the deletion
+        """
+        with engine.connect() as conn:
+            conn.execute(
+                text(
+                    f"DELETE FROM {self._table_name} WHERE {self._sid_column} IN :sids"
+                ),
+                {"sids": tuple(SIDs)},
+            )
+            conn.commit()
+
+
+class BaseScraperInterface(ABC, BaseScraperInternals):
+    @abstractmethod
+    def _get_html(self):
+        """Get all html needed for all data rows. **PLEASE** use self._save_html to save the HTML
+        content."""
+        pass
+
+    @abstractmethod
+    def _extract_data_from_html(self, sid: Any = None):
+        """Extract data rows from the HTML. **PLEASE** do the following:
+
+        1. Determine where we left off using the parameter `sid`
+        2. use self._stage_rows or self._stage_row for all extracted data
+        """
+        pass
+
+    @abstractmethod
+    def _persist(self):
+        """Persist the staged data into the production database"""
+        with engine_staged.connect() as staged_conn:
+            staged_data = pd.read_sql(f"SELECT * FROM {self._table_name}", staged_conn)
+
+        # Remove any rows in production DB that are being replaced by staged data
+        staged_sids = staged_data[self._sid_column].tolist()
+        self.__delete_rows(SIDs=staged_sids, engine=engine)
+        with engine.connect() as prod_conn:
+            prod_conn.execute(
+                text(
+                    f"DELETE FROM {self._table_name} WHERE {self._sid_column} IN :sids"
+                ),
+                {"sids": tuple(staged_sids)},
+            )
+            prod_conn.commit()
+
+        # Insert staged data into production DB
+        with engine.connect() as prod_conn:
+            staged_data.to_sql(
+                self._table_name, prod_conn, if_exists="append", index=False
+            )
+            prod_conn.commit()
+
+        # Clear staged data
+        self.clear_staged()
+
+
+class BaseScraper(pd.DataFrame, ABC):
+    
+    
 
     ######################################
     # region PUBLIC FUNCTIONS
@@ -207,143 +345,12 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
     #####################################
     # region UD FUNCTIONS
     #####################################
-    @abstractmethod
-    def _get_html(self):
-        """Get all html needed for all data rows. **PLEASE** use self._save_html to save the HTML
-        content."""
-        pass
-
-    @abstractmethod
-    def _extract_data_from_html(self, sid: Any = None):
-        """Extract data rows from the HTML. **PLEASE** do the following:
-
-        1. Determine where we left off using the parameter `sid`
-        2. use self._stage_rows or self._stage_row for all extracted data
-        """
-        pass
-
-    @abstractmethod
-    def _persist(self):
-        """Persist the staged data into the production database"""
-        with engine_staged.connect() as staged_conn:
-            staged_data = pd.read_sql(f"SELECT * FROM {self._table_name}", staged_conn)
-
-        # Remove any rows in production DB that are being replaced by staged data
-        staged_sids = staged_data[self._sid_column].tolist()
-        self.__delete_rows(SIDs=staged_sids, engine=engine)
-        with engine.connect() as prod_conn:
-            prod_conn.execute(
-                text(
-                    f"DELETE FROM {self._table_name} WHERE {self._sid_column} IN :sids"
-                ),
-                {"sids": tuple(staged_sids)},
-            )
-            prod_conn.commit()
-
-        # Insert staged data into production DB
-        with engine.connect() as prod_conn:
-            staged_data.to_sql(
-                self._table_name, prod_conn, if_exists="append", index=False
-            )
-            prod_conn.commit()
-
-        # Clear staged data
-        self.clear_staged()
+    
     # endregion
 
     #####################################
     # region INTERNAL UTILITIES
     #####################################
-    def _save_html(self, url: str, selector: str | None = None):
-        """Use this function to save any HTML in self._get_html
-
-        Args:
-            url (str): URL slug of content
-            selector (str | None): The HTML selector
-        """
-        if not is_html_cached(url) or self._override_html_cache:
-            html_content = get_soup(url)
-            if selector:
-                html_content = str(html_content.select_one(selector))
-            else:
-                html_content = str(html_content)
-            with open(html_cache_path(url), "+a") as f:
-                f.write(html_content)
-
-    def _stage_rows(self, data: dict | pd.DataFrame | list[dict]):
-        """Save rows of data into the staging database.
-
-        Args:
-            data (dict | pd.DataFrame): The data of the row being staged
-        """
-        # Convert to DataFrame if dict
-        if isinstance(data, dict):
-            data = pd.DataFrame([data])
-        elif isinstance(data, list):
-            data = pd.DataFrame(data)
-
-        # Remove existing rows of the staged SIDs
-        sid_values = data[self._sid_column].tolist()
-        self.__delete_rows(SIDs=sid_values, engine=engine_staged)
-
-        # Save new row
-        data.to_sql(self._table_name, engine_staged, if_exists="append", index=False)
-
-
-    def _get_latest_sid(self, staged: bool = True) -> Any | None:
-        """Get the latest SID from either the staging or production database.
-        The result must be in the range defined by range_start and range_end.
-
-        Args:
-            staged (bool, optional): Whether to get from the staging database.
-                Defaults to True.
-        """
-        range_filter = ""
-        if self._range_start and self._range_end:
-            range_filter = f"BETWEEN '{self._range_start}' AND '{self._range_end}'"
-        elif self._range_start:
-            range_filter = f">= '{self._range_start}'"
-        elif self._range_end:
-            range_filter = f"<= '{self._range_end}'"
-
-        engine_to_use = engine_staged if staged else engine
-        with engine_to_use.connect() as conn:
-            result = conn.execute(
-                text(
-                    f"SELECT MAX({self._sid_column}) as latest_sid FROM {self._table_name}"
-                    + (
-                        f" WHERE {self._sid_column} {range_filter}"
-                        if range_filter
-                        else ""
-                    )
-                )
-            ).fetchone()
-            return (
-                result["latest_sid"]
-                if result and result["latest_sid"] is not None
-                else None
-            )
-
-    # endregion
-
-    ######################################
-    # region "UNDER THE HOOD" UTILITIES
-    ######################################
-    def __delete_rows(self, SIDs: list[str], engine):
-        """Delete multiple rows from the staging database.
-
-        Args:
-            SIDs (list[str]): The SIDs of the rows being deleted
-            engine: The database engine to use for the deletion
-        """
-        with engine.connect() as conn:
-            conn.execute(
-                text(
-                    f"DELETE FROM {self._table_name} WHERE {self._sid_column} IN :sids"
-                ),
-                {"sids": tuple(SIDs)},
-            )
-            conn.commit()
-
-
+    
+    
 
