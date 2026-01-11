@@ -16,8 +16,8 @@ warnings.filterwarnings("ignore", message="Pandas doesn't allow columns to be cr
 
 class BaseScraperInternals(pd.DataFrame):
     """A base for the internal functionality of all scrapers."""
-    BASE_URL = "https://www.baseball-reference.com/"
-    """The base URL for Baseball Reference."""
+    BASE_URL = "https://www.basketball-reference.com/"
+    """The base URL for Basketball Reference."""
     WEBSCRAPE_DEBOUNCER = 4
     """Time in seconds to wait between web requests to avoid error 429 (Too Many Requests)."""
 
@@ -34,8 +34,7 @@ class BaseScraperInternals(pd.DataFrame):
         Args:
             table_name (str): The database table name where it is being saved
             sid_column (str): The column name that uniquely identifies a row
-            range_start (Any, optifile_path = Path("some/nested/directory/file.txt")
-file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of the range of
+            range_start (Any, optional): The starting point of the range of
                 pages to be scraped. Defaults to None.
             range_end (Any, optional): The ending point of the range of pages
                 to be scraped. Defaults to None.
@@ -51,6 +50,7 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
         self._range_start = range_start
         self._range_end = range_end
         self._override_html_cache = override_html_cache
+        self._session = requests.Session()
     
     @classmethod
     def _html_cache_path(cls, slug: str):
@@ -83,10 +83,24 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
             selector (str | None): The HTML selector
         """
         soup = None
+        if slug.startswith("/"):
+            slug = slug[1:]
         if not self._is_html_cached(slug) or self._override_html_cache:
             # Get soup from web and cache it
-            print()
-            response = requests.get(self.BASE_URL + slug)
+            print(self.BASE_URL + slug)
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'DNT': '1',
+            }
+            response = self._session.get(self.BASE_URL + slug, headers=headers)
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
             if response.status_code < 200 or response.status_code > 299:
                 raise Exception(
