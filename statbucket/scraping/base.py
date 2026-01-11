@@ -3,7 +3,7 @@
 import os
 import time
 from typing import Any
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 import requests
 from abc import ABC, abstractmethod
 import pandas as pd
@@ -72,15 +72,16 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
             return True
         return False
     
-    def _html(self, slug: str, selector: str | None = None):
+    def _html(self, slug: str, selector: str | None = None) -> Tag | None:
         """Use this function to save any HTML in self._get_html
 
         Args:
             slug (str): URL slug of content
             selector (str | None): The HTML selector
         """
-        # If not using a cached version, download and save the HTML
+        soup = None
         if not self._is_html_cached(slug) or self._override_html_cache:
+            # Get soup from web and cache it
             response = requests.get(self.BASE_URL + slug)
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
             if response.status_code < 200 or response.status_code > 299:
@@ -94,6 +95,13 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
                 soup = BeautifulSoup(response.text, "html.parser")
             with open(self._html_cache_path(slug), "w") as f:
                 f.write(str(soup))
+        else:
+            # Load soup from cache
+            with open(self._html_cache_path(slug), "r") as f:
+                soup = BeautifulSoup(f.read(), "html.parser")
+                if selector:
+                    soup = soup.select_one(selector)
+        return soup
 
     def _stage_rows(self, data: dict | pd.DataFrame | list[dict]):
         """Save rows of data into the staging database.
