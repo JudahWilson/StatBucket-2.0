@@ -22,7 +22,7 @@ class Players(BaseScraper):
     def _get_html(self):
         pass
     
-    def _extract_data_from_html(self, sid: str | None = None):
+    def _scrape(self, sid: str | None = None):
         pass
 
     def _persist(self):

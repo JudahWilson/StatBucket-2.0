@@ -11,21 +11,8 @@ from statbucket.mother import engine, engine_staged
 from sqlalchemy import text
 
 
-class BaseScraperInternals:
-    """A base class for all data being scraped that inherits from DataFrame.
-
-    the @abstractmethod decorated functions are the user-implemented functions
-
-    Any '_' prefixed functions are helper functions for internal use.
-
-    Any '__' prefixed functions shouldn't be called by a UD function.
-
-    The remaining functions and properties are user-accessible for interacting
-    with the scraper.
-
-    Args:
-        ABC (_type_): _description_
-    """
+class BaseScraperInternals(pd.DataFrame):
+    """A base for the internal functionality of all scrapers."""
     BASE_URL = "https://www.baseball-reference.com/"
     """The base URL for Baseball Reference."""
     WEBSCRAPE_DEBOUNCER = 4
@@ -74,7 +61,6 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
             os.makedirs(cache_dir)
         return os.path.join(cache_dir, slug) + ".html"
 
-
     @classmethod
     def _is_html_cached(cls, slug: str) -> bool:
         """Check if the HTML content for the given URL is already cached.
@@ -85,50 +71,29 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
         if os.path.exists(cls._html_cache_path(slug)):
             return True
         return False
-
-
-    @classmethod
-    def _get_soup(cls, slug, selector: str | None = None) -> BeautifulSoup:
-        """
-        Get a BeautifulSoup object from a slug
-
-        Args:
-            slug (str): the path of the website to get the soup from
-
-        Raises:
-            Exception: A failure to get the data from the url
-
-        Returns:
-            BeautifulSoup: the soup object
-        """
-        print(slug)
-        response = requests.get(slug)
-        time.sleep(cls.WEBSCRAPE_DEBOUNCER)
-        if response.status_code < 200 or response.status_code > 299:
-            raise Exception(
-                f"Error getting data from {slug}. Status " + str(response.status_code)
-            )
-
-        if selector:
-            return BeautifulSoup(response.text, "html.parser").select_one(selector)
-        else:
-            return BeautifulSoup(response.text, "html.parser")
     
-    def _save_html(self, url: str, selector: str | None = None):
+    def _html(self, slug: str, selector: str | None = None):
         """Use this function to save any HTML in self._get_html
 
         Args:
-            url (str): URL slug of content
+            slug (str): URL slug of content
             selector (str | None): The HTML selector
         """
-        if not self._is_html_cached(url) or self._override_html_cache:
-            html_content = self._get_soup(url)
+        # If not using a cached version, download and save the HTML
+        if not self._is_html_cached(slug) or self._override_html_cache:
+            response = requests.get(self.BASE_URL + slug)
+            time.sleep(self.WEBSCRAPE_DEBOUNCER)
+            if response.status_code < 200 or response.status_code > 299:
+                raise Exception(
+                    f"Error getting data from {slug}. Status " + str(response.status_code)
+                )
+
             if selector:
-                html_content = str(html_content.select_one(selector))
+                soup = BeautifulSoup(response.text, "html.parser").select_one(selector)
             else:
-                html_content = str(html_content)
-            with open(self._html_cache_path(url), "+a") as f:
-                f.write(html_content)
+                soup = BeautifulSoup(response.text, "html.parser")
+            with open(self._html_cache_path(slug), "w") as f:
+                f.write(str(soup))
 
     def _stage_rows(self, data: dict | pd.DataFrame | list[dict]):
         """Save rows of data into the staging database.
@@ -148,7 +113,6 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
 
         # Save new row
         data.to_sql(self._table_name, engine_staged, if_exists="append", index=False)
-
 
     def _get_latest_sid(self, staged: bool = True) -> Any | None:
         """Get the latest SID from either the staging or production database.
@@ -202,18 +166,15 @@ file_path.parent.mkdir(parents=True, exist_ok=True)onal): The starting point of 
 
 
 class BaseScraperInterface(ABC, BaseScraperInternals):
-    @abstractmethod
-    def _get_html(self):
-        """Get all html needed for all data rows. **PLEASE** use self._save_html to save the HTML
-        content."""
-        pass
+    """The interface that must be implemented by all scraper classes."""
 
     @abstractmethod
-    def _extract_data_from_html(self, sid: Any = None):
+    def _scrape(self, sid: Any = None):
         """Extract data rows from the HTML. **PLEASE** do the following:
 
         1. Determine where we left off using the parameter `sid`
-        2. use self._stage_rows or self._stage_row for all extracted data
+        2. use _html to get any HTML needed
+        3. use self._stage_rows or self._stage_row for all extracted data
         """
         pass
 
@@ -246,19 +207,15 @@ class BaseScraperInterface(ABC, BaseScraperInternals):
         self.clear_staged()
 
 
-class BaseScraper(pd.DataFrame, ABC):
+class BaseScraper(BaseScraperInterface):
+    """The base scraper class. The interface methods and internal methods are
+    inherited. This also extends DataFrame"""
     
-    
-
-    ######################################
-    # region PUBLIC FUNCTIONS
-    ######################################
     def run(self):
         """Run the scraper end-to-end: get HTML, parse HTML, stage data,
         and persist data."""
-        self._get_html()
         latest_sid = self._get_latest_sid()
-        self._extract_data_from_html(latest_sid)
+        self._scrape(latest_sid)
         self._persist()
 
     def clear_staged(self, filter: str = ""):
@@ -340,17 +297,6 @@ class BaseScraper(pd.DataFrame, ABC):
         """
         return self._get_latest_sid(staged=False)
 
-    # endregion
-
-    #####################################
-    # region UD FUNCTIONS
-    #####################################
-    
-    # endregion
-
-    #####################################
-    # region INTERNAL UTILITIES
-    #####################################
     
     
 
