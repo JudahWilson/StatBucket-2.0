@@ -1,5 +1,6 @@
 from typing import Any
-from statbucket.scraping.base import BaseScraper, get_soup
+from statbucket.scraping.base import BaseScraper
+from statbucket.scraping.utilities import parse_table_BR
 
 
 class Players(BaseScraper):
@@ -24,9 +25,10 @@ class Players(BaseScraper):
         first_letter = "a" if sid is None else sid[0].lower()
         start_index = self.letters.index(first_letter)
         for letter in self.letters[start_index:]:
-            players_rows = self._html(f"players/{letter}/", "tbody > tr:not(.thead)")
-            for row in players_rows:
-                
+            players_soup = self._html(f"players/{letter}/", "table#players")
+            players_df = parse_table_BR(players_soup)
+            breakpoint()
+            
 
     
     def _persist(self):
