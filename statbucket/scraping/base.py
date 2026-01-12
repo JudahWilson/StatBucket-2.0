@@ -67,12 +67,13 @@ class BaseScraperInternals(pd.DataFrame):
             slug (str): The path of the website the HTML content is from.
         """
         cache_dir = "html_cache"
-        sub_folder = slug.replace("/", "\\")
-        if sub_folder.endswith("\\"):
-            sub_folder = sub_folder[:-1]
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
-        return os.path.join(cache_dir, sub_folder) + ".html"
+        slug_path = slug.replace("/", "\\")
+        if slug_path.endswith("\\"):
+            slug_path = slug_path[:-1]
+        cache_path= os.path.join(cache_dir, slug_path)
+        if not os.path.exists(cache_path):
+            os.makedirs(cache_path,exist_ok=True)
+        return cache_path + ".html"
 
     @classmethod
     def _is_html_cached(cls, slug: str) -> bool:
