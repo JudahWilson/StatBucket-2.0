@@ -10,6 +10,7 @@ import pandas as pd
 from statbucket.mother import engine, engine_staged
 from sqlalchemy import text
 import warnings
+from playwright.sync_api import Browser
 
 # Ignores any UserWarning that starts with this text
 warnings.filterwarnings("ignore", message="Pandas doesn't allow columns to be created via a new attribute name")
@@ -28,6 +29,7 @@ class BaseScraperInternals(pd.DataFrame):
         range_start: Any = None,
         range_end: Any = None,
         override_html_cache: bool = False,
+        playwright: Browser | None = None,
     ):
         """Each BaseScraper instance represents a scraper for a DB table.
 
@@ -50,7 +52,6 @@ class BaseScraperInternals(pd.DataFrame):
         self._range_start = range_start
         self._range_end = range_end
         self._override_html_cache = override_html_cache
-        self._session = requests.Session()
     
     @classmethod
     def _html_cache_path(cls, slug: str):
@@ -88,19 +89,7 @@ class BaseScraperInternals(pd.DataFrame):
         if not self._is_html_cached(slug) or self._override_html_cache:
             # Get soup from web and cache it
             print(self.BASE_URL + slug)
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'DNT': '1',
-            }
-            response = self._session.get(self.BASE_URL + slug, headers=headers)
+            response = requests.get(self.BASE_URL + slug)
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
             if response.status_code < 200 or response.status_code > 299:
                 raise Exception(

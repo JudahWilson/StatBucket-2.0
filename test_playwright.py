@@ -23,6 +23,9 @@ def test_basketball_reference():
             
             # Try to get some content to verify we're not blocked
             content = page.content()
+            with open('test_basketball_reference.html', 'w', encoding='utf-8') as f:
+                f.write(content)
+            
             if "basketball" in content.lower():
                 print("SUCCESS: Page loaded successfully in headless mode!")
             else:
