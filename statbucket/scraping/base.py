@@ -2,7 +2,7 @@
 
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 from bs4 import BeautifulSoup, Tag
 import requests
 from abc import ABC, abstractmethod
@@ -34,7 +34,7 @@ class BaseScraperInternals(pd.DataFrame):
         range_start: Any = None,
         range_end: Any = None,
         override_html_cache: bool = False,
-        webpage: Optional[Page] = None,
+        webpage: Page | None = None,
     ):
         """Each BaseScraper instance represents a scraper for a DB table.
 
@@ -67,9 +67,12 @@ class BaseScraperInternals(pd.DataFrame):
             slug (str): The path of the website the HTML content is from.
         """
         cache_dir = "html_cache"
+        sub_folder = slug.replace("/", "\\")
+        if sub_folder.endswith("\\"):
+            sub_folder = sub_folder[:-1]
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
-        return os.path.join(cache_dir, slug) + ".html"
+        return os.path.join(cache_dir, sub_folder) + ".html"
 
     @classmethod
     def _is_html_cached(cls, slug: str) -> bool:
@@ -100,16 +103,16 @@ class BaseScraperInternals(pd.DataFrame):
             )
             response = self._webpage.goto(f"{self.BASE_URL}/{slug}")
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
-            if response.status_code < 200 or response.status_code > 299:
+            if response.status < 200 or response.status > 299:
                 raise Exception(
                     f"Error getting data from {slug}. Status "
-                    + str(response.status_code)
+                    + str(response.status)
                 )
 
             if selector:
-                soup = BeautifulSoup(response.text, "html.parser").select_one(selector)
+                soup = BeautifulSoup(response.text(), "html.parser").select_one(selector)
             else:
-                soup = BeautifulSoup(response.text, "html.parser")
+                soup = BeautifulSoup(response.text(), "html.parser")
             with open(self._html_cache_path(slug), "w") as f:
                 f.write(str(soup))
         else:
