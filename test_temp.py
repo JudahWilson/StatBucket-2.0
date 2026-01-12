@@ -1,6 +1,7 @@
 """Test script to access basketball-reference.com using Playwright."""
 
 from playwright.sync_api import sync_playwright
+from statbucket.scraping.Players import Players
 
 def test_basketball_reference(slug):
     """Test accessing basketball-reference.com homepage."""

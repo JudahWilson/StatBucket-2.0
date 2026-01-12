@@ -22,7 +22,7 @@ warnings.filterwarnings(
 class BaseScraperInternals(pd.DataFrame):
     """A base for the internal functionality of all scrapers."""
 
-    BASE_URL = "https://www.basketball-reference.com/"
+    BASE_URL = "https://www.basketball-reference.com"
     """The base URL for Basketball Reference."""
     WEBSCRAPE_DEBOUNCER = 4
     """Time in seconds to wait between web requests to avoid error 429 (Too Many Requests)."""
@@ -94,11 +94,11 @@ class BaseScraperInternals(pd.DataFrame):
             slug = slug[1:]
         if not self._is_html_cached(slug) or self._override_html_cache:
             # Get soup from web and cache it
-            print(self.BASE_URL + slug)
+            print(f"{self.BASE_URL}/{slug}")
             assert self._webpage is not None, (
                 "Webpage must be provided to the scraper class to scrape HTML"
             )
-            response = requests.get(self.BASE_URL + slug)
+            response = requests.get(f"{self.BASE_URL}/{slug}")
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
             if response.status_code < 200 or response.status_code > 299:
                 raise Exception(

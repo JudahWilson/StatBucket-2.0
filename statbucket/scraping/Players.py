@@ -1,6 +1,8 @@
 from typing import Any
 from statbucket.scraping.base import BaseScraper
 from statbucket.scraping.utilities import parse_table_BR
+from playwright.sync_api import Page
+
 
 
 class Players(BaseScraper):
@@ -9,6 +11,7 @@ class Players(BaseScraper):
         range_start: Any = None,
         range_end: Any = None,
         override_html_cache: bool = False,
+        webpage: Page | None = None,
     ):
         super().__init__(
             table_name="players",
@@ -16,6 +19,7 @@ class Players(BaseScraper):
             range_start=range_start,
             range_end=range_end,
             override_html_cache=override_html_cache,
+            webpage=webpage,
         )
         self._letters = [chr(i) for i in range(ord("a"), ord("z") + 1)]
         """Letters a-z except x"""
