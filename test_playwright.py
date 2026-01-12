@@ -6,8 +6,8 @@ from playwright.sync_api import sync_playwright
 def test_basketball_reference():
     """Test accessing basketball-reference.com homepage."""
     with sync_playwright() as p:
-        # Launch browser
-        browser = p.chromium.launch(headless=False)  # Set to False to see the browser
+        # Launch browser in HEADLESS mode (perfect for servers)
+        browser = p.chromium.launch(headless=True)  # Set to True for server environments
         page = browser.new_page()
         
         # Navigate to basketball reference
@@ -24,7 +24,7 @@ def test_basketball_reference():
             # Try to get some content to verify we're not blocked
             content = page.content()
             if "basketball" in content.lower():
-                print("SUCCESS: Page loaded successfully!")
+                print("SUCCESS: Page loaded successfully in headless mode!")
             else:
                 print("WARNING: Page loaded but content may be blocked")
         else:
