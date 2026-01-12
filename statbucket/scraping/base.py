@@ -10,13 +10,18 @@ import pandas as pd
 from statbucket.mother import engine, engine_staged
 from sqlalchemy import text
 import warnings
-from playwright.sync_api import Browser
+from playwright.sync_api import Page
 
 # Ignores any UserWarning that starts with this text
-warnings.filterwarnings("ignore", message="Pandas doesn't allow columns to be created via a new attribute name")
+warnings.filterwarnings(
+    "ignore",
+    message="Pandas doesn't allow columns to be created via a new attribute name",
+)
+
 
 class BaseScraperInternals(pd.DataFrame):
     """A base for the internal functionality of all scrapers."""
+
     BASE_URL = "https://www.basketball-reference.com/"
     """The base URL for Basketball Reference."""
     WEBSCRAPE_DEBOUNCER = 4
@@ -29,7 +34,7 @@ class BaseScraperInternals(pd.DataFrame):
         range_start: Any = None,
         range_end: Any = None,
         override_html_cache: bool = False,
-        playwright: Browser | None = None,
+        webpage: Page | None = None,
     ):
         """Each BaseScraper instance represents a scraper for a DB table.
 
@@ -52,7 +57,8 @@ class BaseScraperInternals(pd.DataFrame):
         self._range_start = range_start
         self._range_end = range_end
         self._override_html_cache = override_html_cache
-    
+        self._webpage = webpage
+
     @classmethod
     def _html_cache_path(cls, slug: str):
         """Get the path of the cached HTML file for a given URL.
@@ -75,7 +81,7 @@ class BaseScraperInternals(pd.DataFrame):
         if os.path.exists(cls._html_cache_path(slug)):
             return True
         return False
-    
+
     def _html(self, slug: str, selector: str | None = None) -> Tag | None:
         """Use this function to save any HTML in self._get_html
 
@@ -89,11 +95,15 @@ class BaseScraperInternals(pd.DataFrame):
         if not self._is_html_cached(slug) or self._override_html_cache:
             # Get soup from web and cache it
             print(self.BASE_URL + slug)
+            assert self._webpage is not None, (
+                "Webpage must be provided to the scraper class to scrape HTML"
+            )
             response = requests.get(self.BASE_URL + slug)
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
             if response.status_code < 200 or response.status_code > 299:
                 raise Exception(
-                    f"Error getting data from {slug}. Status " + str(response.status_code)
+                    f"Error getting data from {slug}. Status "
+                    + str(response.status_code)
                 )
 
             if selector:
@@ -147,16 +157,20 @@ class BaseScraperInternals(pd.DataFrame):
 
         engine_to_use = engine_staged if staged else engine
         with engine_to_use.connect() as conn:
-            result = conn.execute(
-                text(
-                    f"SELECT MAX({self._sid_column}) as latest_sid FROM {self._table_name}"
-                    + (
-                        f" WHERE {self._sid_column} {range_filter}"
-                        if range_filter
-                        else ""
+            result = (
+                conn.execute(
+                    text(
+                        f"SELECT MAX({self._sid_column}) as latest_sid FROM {self._table_name}"
+                        + (
+                            f" WHERE {self._sid_column} {range_filter}"
+                            if range_filter
+                            else ""
+                        )
                     )
                 )
-            ).mappings().fetchone()
+                .mappings()
+                .fetchone()
+            )
             return (
                 result["latest_sid"]
                 if result and result["latest_sid"] is not None
@@ -225,7 +239,7 @@ class BaseScraperInterface(ABC, BaseScraperInternals):
 class BaseScraper(BaseScraperInterface):
     """The base scraper class. The interface methods and internal methods are
     inherited. This also extends DataFrame"""
-    
+
     def run(self):
         """Run the scraper end-to-end: get HTML, parse HTML, stage data,
         and persist data."""
@@ -285,7 +299,7 @@ class BaseScraper(BaseScraperInterface):
             for col in new_data.columns:
                 self[col] = new_data[col].values
             self.index = new_data.index
-  
+
     def staged(self) -> pd.DataFrame:
         """Get the staged data as a DataFrame.
 
@@ -311,7 +325,3 @@ class BaseScraper(BaseScraperInterface):
             Any: The latest production SID
         """
         return self._get_latest_sid(staged=False)
-
-    
-    
-
