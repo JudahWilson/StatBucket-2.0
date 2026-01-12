@@ -2,7 +2,7 @@
 
 import os
 import time
-from typing import Any
+from typing import Any, Optional
 from bs4 import BeautifulSoup, Tag
 import requests
 from abc import ABC, abstractmethod
@@ -34,7 +34,7 @@ class BaseScraperInternals(pd.DataFrame):
         range_start: Any = None,
         range_end: Any = None,
         override_html_cache: bool = False,
-        webpage: Page | None = None,
+        webpage: Optional[Page] = None,
     ):
         """Each BaseScraper instance represents a scraper for a DB table.
 
