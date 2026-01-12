@@ -71,8 +71,9 @@ class BaseScraperInternals(pd.DataFrame):
         if slug_path.endswith("\\"):
             slug_path = slug_path[:-1]
         cache_path= os.path.join(cache_dir, slug_path)
-        if not os.path.exists(cache_path):
-            os.makedirs(cache_path,exist_ok=True)
+        cache_folder = os.path.dirname(cache_path)
+        if not os.path.exists(cache_folder):
+            os.makedirs(cache_folder,exist_ok=True)
         return cache_path + ".html"
 
     @classmethod
@@ -114,11 +115,11 @@ class BaseScraperInternals(pd.DataFrame):
                 soup = BeautifulSoup(response.text(), "html.parser").select_one(selector)
             else:
                 soup = BeautifulSoup(response.text(), "html.parser")
-            with open(self._html_cache_path(slug), "w") as f:
+            with open(self._html_cache_path(slug), "w", encoding="utf-8") as f:
                 f.write(str(soup))
         else:
             # Load soup from cache
-            with open(self._html_cache_path(slug), "r") as f:
+            with open(self._html_cache_path(slug), "r", encoding="utf-8") as f:
                 soup = BeautifulSoup(f.read(), "html.parser")
                 if selector:
                     soup = soup.select_one(selector)
