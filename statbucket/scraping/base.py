@@ -98,7 +98,7 @@ class BaseScraperInternals(pd.DataFrame):
             assert self._webpage is not None, (
                 "Webpage must be provided to the scraper class to scrape HTML"
             )
-            response = requests.get(f"{self.BASE_URL}/{slug}")
+            response = self._webpage.goto(f"{self.BASE_URL}/{slug}")
             time.sleep(self.WEBSCRAPE_DEBOUNCER)
             if response.status_code < 200 or response.status_code > 299:
                 raise Exception(
