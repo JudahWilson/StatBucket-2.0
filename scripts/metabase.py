@@ -2,10 +2,7 @@
 import os
 import subprocess
 
-def main():
+if __name__ == "__main__":
     os.chdir("../metabase")
     subprocess.Popen(["java", "-jar", "metabase.jar"])
     subprocess.Popen(["ngrok", "http", "--domain=judahwilson.ngrok.io", "3000"])
-
-if __name__ == '__main__':
-    main()

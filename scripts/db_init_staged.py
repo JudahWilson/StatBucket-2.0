@@ -165,7 +165,7 @@ def apply_schema_to_staging(schema_file):
 
 
 
-def main():
+if __name__ == "__main__":
     """Initialize staged database according to production DDL"""
     parser = argparse.ArgumentParser(description=__doc__)
     args = parser.parse_args()
@@ -188,7 +188,3 @@ def main():
     except Exception as e:
         print_error(f"Database initialization failed: {e}")
         sys.exit(1)
-
-
-if __name__ == "__main__":
-    main()
