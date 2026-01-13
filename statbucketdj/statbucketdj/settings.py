@@ -83,12 +83,20 @@ WSGI_APPLICATION = 'statbucketdj.wsgi.application'
 
 # Parse database URL from environment
 db_url = os.getenv('PROD_DB_URL')
+staging_db_url = os.getenv('STAGING_DB_URL')
+
 # Manual parsing to handle special characters in password
 # Format: mysql+mysqlconnector://user:password@host:port/database?options
 pattern = r'^(\w+)(\+\w+)?://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/([^?]+)(?:\?(.*))?$'
-match = re.match(pattern, db_url)
 
+# Parse production database
+match = re.match(pattern, db_url)
 scheme, connector, username, password, hostname, port, database, options = match.groups()
+
+# Parse staging database
+staging_match = re.match(pattern, staging_db_url)
+staging_scheme, staging_connector, staging_username, staging_password, staging_hostname, staging_port, staging_database, staging_options = staging_match.groups()
+
 DATABASES = {
     "default": {
         'ENGINE': 'django.db.backends.mysql',
@@ -102,8 +110,15 @@ DATABASES = {
         },
     },
     'staging': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'staging.db',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': staging_database,
+        'USER': staging_username,
+        'PASSWORD': staging_password,
+        'HOST': staging_hostname,
+        'PORT': staging_port or '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
 
