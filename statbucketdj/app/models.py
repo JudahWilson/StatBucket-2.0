@@ -1,10 +1,3 @@
-# This is an auto-generated Django model module.
-# You'll have to do the following manually to clean this up:
-#   * Rearrange models' order
-#   * Make sure each model has one field with primary_key=True
-#   * Make sure each ForeignKey and OneToOneField has `on_delete` set to the desired behavior
-#   * Remove` lines if you wish to allow Django to create, modify, and delete the table
-# Feel free to rename the models, but don't rename db_table values or field names.
 from django.db import models
 
 
@@ -61,6 +54,9 @@ class Games(models.Model):
 
     class Meta:
         db_table = 'games'
+
+    def __str__(self):
+        return self.date_time.strftime("%Y-%m-%d %H:%M:%S") + ' - ' + self.home_team_br_id + ' vs ' + self.away_team_br_id
 
 
 class Playactions(models.Model):
