@@ -103,7 +103,7 @@ DATABASES = {
     },
     'staging': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'test.db',
+        'NAME': BASE_DIR / 'staging.db',
     }
 }
 
