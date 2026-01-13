@@ -4,11 +4,9 @@ import os
 import time
 from typing import Any
 from bs4 import BeautifulSoup, Tag
-import requests
 from abc import ABC, abstractmethod
 import pandas as pd
-from statbucket.mother import engine, engine_staged
-from sqlalchemy import text
+# from mother import engine, engine_staged
 import warnings
 from playwright.sync_api import Page
 

@@ -1,6 +1,6 @@
 from typing import Any
-from statbucket.scraping.base import BaseScraper
-from statbucket.scraping.utilities import parse_table_BR
+from scraping.base import BaseScraper
+from scraping.utilities import parse_table_BR
 from playwright.sync_api import Page
 
 
