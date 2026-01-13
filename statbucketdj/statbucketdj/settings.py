@@ -11,9 +11,15 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import os
+import re
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+env_path = BASE_DIR.parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 
 # Quick-start development settings - unsuitable for production
@@ -75,15 +81,30 @@ WSGI_APPLICATION = 'statbucketdj.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# Parse database URL from environment
+db_url = os.getenv('PROD_DB_URL')
+# Manual parsing to handle special characters in password
+# Format: mysql+mysqlconnector://user:password@host:port/database?options
+pattern = r'^(\w+)(\+\w+)?://([^:]+):([^@]+)@([^:/]+)(?::(\d+))?/([^?]+)(?:\?(.*))?$'
+match = re.match(pattern, db_url)
+
+scheme, connector, username, password, hostname, port, database, options = match.groups()
 DATABASES = {
-    'default': {
+    "default": {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': database,
+        'USER': username,
+        'PASSWORD': password,
+        'HOST': hostname,
+        'PORT': port or '3306',
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+        },
     }
 }
 
 
-# Password validation
+# Password validation 
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
