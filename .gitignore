@@ -27,6 +27,7 @@ data/
 *.csv
 *.db
 *.sql
+html_cache/
 
 # Metabase
 metabase
