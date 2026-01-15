@@ -98,7 +98,8 @@ staging_match = re.match(pattern, staging_db_url)
 staging_scheme, staging_connector, staging_username, staging_password, staging_hostname, staging_port, staging_database, staging_options = staging_match.groups()
 
 DATABASES = {
-    "default": {
+    "default": {},  # Default empty, routing handled by DatabaseRouter
+    "prod": {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': database,
         'USER': username,
