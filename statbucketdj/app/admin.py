@@ -2,12 +2,12 @@ from django.contrib import admin
 from django.apps import apps
 
 ################################################################################
-# Dynamic model registration shown in singular form
+# Dynamic Model Registration 
 ################################################################################
 app_models = apps.get_app_config('app').get_models()
 for model in app_models:
     try:
-        # Create admin class that overrides the plural name display
+        # Create admin class that uses singular name for both singular and plural
         class DynamicModelAdmin(admin.ModelAdmin):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, **kwargs)

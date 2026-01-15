@@ -1,5 +1,5 @@
 TODO
-    ALL TABLES NEED ERROR col (json list) and dynamic new data in a json col
-    BaseScraper
-        pub stats method--show range of rows and counts
-    how to propogate column changes to the staged and prod db
+    functionality to easily transfer data between dbs
+        support filter of which data
+        would be nice to bring all related data over so staging can have related data sometimes
+    all tables have fallback col of object storage until db refined
