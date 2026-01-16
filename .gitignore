@@ -28,6 +28,7 @@ data/
 *.db
 *.sql
 html_cache/
+admin.sqlite3
 
 # Metabase
 metabase

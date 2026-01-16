@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'app',
+    'staging',
     'debug_toolbar',
 ]
 
@@ -98,7 +99,10 @@ staging_match = re.match(pattern, staging_db_url)
 staging_scheme, staging_connector, staging_username, staging_password, staging_hostname, staging_port, staging_database, staging_options = staging_match.groups()
 
 DATABASES = {
-    "default": {},  # Default empty, routing handled by DatabaseRouter
+    "default": {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'admin.sqlite3',  # Django admin data only
+    },
     "prod": {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': database,
@@ -122,6 +126,9 @@ DATABASES = {
         },
     }
 }
+
+# Database Router Configuration
+DATABASE_ROUTERS = ['statbucketdj.database_router.DatabaseRouter']
 
 
 # Password validation 
